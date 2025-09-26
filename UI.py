@@ -6,13 +6,21 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),)))
 from Main import Execute_LTROI
+
+
 config_data_path = Path("./input/Config")
 config_input_path = Path("./input/Data")
 lagged_files_path = Path("./input/lagged_files")
+raw_attribution = Path(".input/raw attribution")
 
 config_data_path.mkdir(parents=True, exist_ok=True)
 config_input_path.mkdir(parents=True, exist_ok=True)
 lagged_files_path.mkdir(parents=True, exist_ok=True)
+raw_attribution.mkdir(parents=True, exist_ok=True)
+
+path_lst = ['ensemble_results', 'Extrapolated Data', 'Weekly ROI Format', 'Weighted Cost', 'logs']
+for path in path_lst:
+    os.makedirs(f"./output/{path}", exist_ok=True)
 
 st.title("LT RROI")
 
