@@ -12,8 +12,10 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Setup logging
+log_dir = "./output/logs"
+os.makedirs(log_dir, exist_ok=True)
 logging.basicConfig(
-    filename='../output/logs/monthly_expected_sales.log',
+    filename=os.path.join(log_dir, "monthly_expected_sales.log"),
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
@@ -22,92 +24,97 @@ logging.basicConfig(
 def generate_expected_sales(config):
     final_df_dict = {}
 
-    # start nearest Sunday
-    input_date = pd.to_datetime(config["expected_sales_start"])
-    days_until_sunday = (6 - input_date.weekday()) % 7
-    nearest_sunday = input_date + timedelta(days=days_until_sunday)
+    try:
+        # nearest Sunday
+        input_date = pd.to_datetime(config["expected_sales_start"])
+        days_until_sunday = (6 - input_date.weekday()) % 7
+        nearest_sunday = input_date + timedelta(days=days_until_sunday)
+        logging.info(f"Nearest Sunday calculated: {nearest_sunday}")
+        print(f"Nearest Sunday: {nearest_sunday}")
+    except Exception as e:
+        logging.exception(f"Error calculating nearest Sunday: {e}")
+        raise
 
-    all_date = pd.date_range(nearest_sunday, config["model_end_date"], freq='D')
-    df_ratio_temp = pd.DataFrame({"Date": all_date})
+    try:
+        all_date = pd.date_range(nearest_sunday, config["model_end_date"], freq='D')
+        df_ratio_temp = pd.DataFrame({"Date": all_date})
+        logging.info(f"Daily date range created with {len(all_date)} days")
+    except Exception as e:
+        logging.exception(f"Error generating daily date range: {e}")
+        raise
 
-    # Load base daily ratio file
-    daily_ratio_temp_1 = pd.read_excel("../input/Data/Kraken_base_ntus_daily_ratio_for_lt.xlsx")
-    df_daily_ratio = pd.merge(df_ratio_temp, daily_ratio_temp_1, on="Date", how="left").fillna(0)
+    try:
+        daily_ratio_temp_1 = pd.read_excel(f"./input/Data/{config['brand']}_daily_ratio_for_lt.xlsx")
+        df_daily_ratio = pd.merge(df_ratio_temp, daily_ratio_temp_1, on="Date", how="left").fillna(0)
+        logging.info("Daily ratio file loaded and merged successfully")
+        print("Daily ratio file loaded")
+    except Exception as e:
+        logging.exception(f"Error loading daily ratio file: {e}")
+        raise
 
     all_date_weekly = pd.date_range(nearest_sunday, config["model_end_date"], freq='W')
     temp_all_date_weekly = pd.DataFrame({"Date": all_date_weekly})
+    logging.info(f"Weekly date range created with {len(all_date_weekly)} weeks")
 
-    # Mapping weekly ratio columns to daily ratio columns
     div_with_sales = {
         f"Weekly {col.split('Base ')[1].replace('Ratio', '').strip()}": col
         for col in df_daily_ratio.columns
         if col.startswith("Base ")
     }
-    print(div_with_sales)
+    logging.info(f"Division with sales mapping created: {div_with_sales}")
+    print("Division with sales mapping:", div_with_sales)
 
-    # Metrics list
     metrics_lst = config.get("metrics", [])
     metrics_lst.append("Pure_Baseline")
-
-    # Expected columns to always check
-    expected_numeric_cols = ["Weighted Impressions", "Expected Simple Sales", "Expected Weighted Sales"]
-    expected_string_cols = ["Media Type", "Product Line", "Master Channel", "Channel", "Platform"]
+    logging.info(f"Metrics to process: {metrics_lst}")
 
     for metrics in metrics_lst:
         logging.info(f"Processing metric: {metrics}")
         print(f"\nProcessing metric: {metrics}")
 
-        if metrics == "Pure_Baseline":
-            expected_sales_df = pd.read_excel(
-                f"../output/Weekly ROI Format/{config['brand']}_{metrics}_Weekly_results.xlsx"
-            )
-            expected_sales_df = pd.merge(temp_all_date_weekly, expected_sales_df, on="Date", how="left")
-            expected_sales_df["Metrics"] = "Pure_Baseline"
-            expected_sales_df.fillna(0, inplace=True)
-        else:
-            expected_sales_df = pd.read_excel(
-                f"../output/Extrapolated Data/LTROI_{config['brand']}_rroi_{metrics}.xlsx"
-            )
+        try:
+            if metrics == "Pure_Baseline":
+                input_path = f"./output/Weekly ROI Format/{config['brand']}_{metrics}_Weekly_results.xlsx"
+                expected_sales_df = pd.read_excel(input_path)
+                expected_sales_df = pd.merge(temp_all_date_weekly, expected_sales_df, on="Date", how="left")
+                expected_sales_df["Metrics"] = "Pure_Baseline"
+                expected_sales_df.fillna(0, inplace=True)
+                logging.info(f"Pure_Baseline file loaded: {input_path}, shape={expected_sales_df.shape}")
+            else:
+                input_path = f"./output/Extrapolated Data/LTROI_{config['brand']}_rroi_{metrics}.xlsx"
+                expected_sales_df = pd.read_excel(input_path)
+                logging.info(f"File loaded for {metrics}: {input_path}, shape={expected_sales_df.shape}")
+        except Exception as e:
+            logging.exception(f"Error loading file for {metrics}: {e}")
+            continue
 
         req_weekly_df = expected_sales_df.copy()
 
-        # Drop 'Impressions' if it exists
-        try:
+        if "Impressions" in req_weekly_df.columns:
             req_weekly_df.drop(columns=['Impressions'], inplace=True)
-        except:
-            pass
 
-        # Identify numeric and string columns
         exclude_cols = ['Date', 'Actual ROI', 'Year', 'Week', 'Expected Simple ROI', 'Expected Weighted ROI']
 
         num_col = [
             col for col in req_weekly_df.columns
             if col not in exclude_cols and pd.api.types.is_numeric_dtype(req_weekly_df[col])
         ]
-        
         str_col = [
             col for col in req_weekly_df.columns
             if col not in num_col + exclude_cols
         ]
 
+        logging.info(f"For {metrics}: String cols={str_col}, Numeric cols={num_col}")
         print(f"String columns for {metrics}: {str_col}")
-        print(f"Numerical columns for {metrics}: {num_col}")
+        print(f"Numeric columns for {metrics}: {num_col}")
 
-        # Check for numeric columns
+        # Fill NA in numeric columns
         for col in num_col:
-            if col in req_weekly_df.columns:
-                req_weekly_df[col].fillna(0, inplace=True)
-            else:
-                print(f"{col} not in Weekly {metrics} file")
-                logging.warning(f"{col} not in Weekly {metrics} file")
+            req_weekly_df[col].fillna(0, inplace=True)
 
-        # Check for string columns
+        # Fill NA in string columns
         for col in str_col:
-            if col in req_weekly_df.columns:
-                req_weekly_df[col].fillna("None", inplace=True)
-            else:
-                print(f"{col} not in Weekly {metrics} file")
-                logging.warning(f"{col} not in Weekly {metrics} file")
+            req_weekly_df[col].fillna("None", inplace=True)
 
         # Prepare 'name' column
         if metrics != "Pure_Baseline":
@@ -119,37 +126,44 @@ def generate_expected_sales(config):
         df_final = pd.DataFrame(columns=req_weekly_df.columns)
 
         for nm in req_weekly_df["name"].unique():
+            logging.info(f"Processing group: {nm}")
             df_temp = req_weekly_df[req_weekly_df["name"] == nm].reset_index(drop=True)
             df_temp.set_index("Date", inplace=True)
 
-            # Daily resampling
-            df_daily = df_temp.resample("D").bfill().copy().reset_index()
-            assert df_daily.isna().sum().sum() == 0, "df_daily contains null values"
+            try:
+                df_daily = df_temp.resample("D").bfill().copy().reset_index()
+                assert df_daily.isna().sum().sum() == 0, f"df_daily contains null values for {nm}"
+                logging.info(f"Resampled daily df for {nm}, shape={df_daily.shape}")
+            except Exception as e:
+                logging.exception(f"Error in resampling {nm}: {e}")
+                continue
 
-            # Spread weekly values across days
             if metrics != "Pure_Baseline":
                 equal_div = ["Weighted Impressions", "Expected Simple Sales", "Expected Weighted Sales"]
                 for v in equal_div:
                     if v in df_daily.columns:
                         df_daily.loc[0, v] /= (3 / 7)
                         df_daily.loc[1:, v] /= 7
+                        logging.debug(f"Divided column {v} for {nm}")
 
-            # Multiply by ratios
             for v in div_with_sales.keys():
                 ratio_col = div_with_sales[v]
                 if v in df_daily.columns and ratio_col in df_daily_ratio.columns:
-                    assert len(df_daily[v]) == len(df_daily_ratio[ratio_col]), "df_daily and ratio len mismatch"
-                    df_daily[v] = df_daily_ratio[ratio_col] * df_daily[v]
+                    try:
+                        assert len(df_daily[v]) == len(df_daily_ratio[ratio_col]), \
+                            f"Length mismatch: {v} vs {ratio_col}"
+                        df_daily[v] = df_daily_ratio[ratio_col] * df_daily[v]
+                        logging.debug(f"Applied ratio for {v} using {ratio_col}")
+                    except Exception as e:
+                        logging.exception(f"Error applying ratio for {v}: {e}")
 
             df_daily = df_daily[req_weekly_df.columns]
             df_final = pd.concat([df_final, df_daily], axis=0).reset_index(drop=True)
 
-        # Add Year and Month columns
         df_final["Year"] = df_final["Date"].dt.year
         df_final["Month"] = df_final["Date"].dt.month
         df_final.drop(columns=["Date", "name"], inplace=True)
 
-        # Define grouping columns
         if metrics != "Pure_Baseline":
             group_cols = str_col + ["Year", "Month"]
         else:
@@ -157,45 +171,39 @@ def generate_expected_sales(config):
             if 'Media Type' in df_final.columns:
                 group_cols.append('Media Type')
 
+        logging.info(f"Grouping columns for {metrics}: {group_cols}")
         print(f"Grouping columns for {metrics}: {group_cols}")
-        df_final = df_final.groupby(group_cols).sum().reset_index()
 
-        print(f"Available columns for {metrics}:", df_final.columns)
+        try:
+            df_final = df_final.groupby(group_cols).sum().reset_index()
+            logging.info(f"Grouped df for {metrics}, shape={df_final.shape}")
+            print(f"Available columns for {metrics}:", df_final.columns.tolist())
+        except Exception as e:
+            logging.exception(f"Error in grouping {metrics}: {e}")
+            continue
 
-        # Sorting if 'Media Type' exists
-        # media_type_order = ['Baseline','Earned Media','Halo','Masterbrand','Non Media','Owned Media','Paid Media','Trade Promo']
-        # if 'Media Type' in df_final.columns:
-        #     df_final['Media Type'] = pd.Categorical(df_final['Media Type'], categories=media_type_order, ordered=True)
-        #     df_sorted_list = []
-        #     for media in media_type_order:
-        #         temp = df_final[df_final['Media Type'] == media]
-        #         if not temp.empty:
-        #             temp_sorted = temp.sort_values(by=['Year', 'Month'])
-        #             df_sorted_list.append(temp_sorted)
-        #     df_final = pd.concat(df_sorted_list, axis=0).reset_index(drop=True)
-        #     print(f"'Media Type', 'Year', 'Month' sorting applied for {metrics}")
-        # else:
-        #     df_final = df_final.sort_values(by=['Year', 'Month'])
-        #     print(f"'Year' and 'Month' sorting applied for {metrics}, 'Media Type' not found.")
-
-        # Save the file
         final_df_dict[metrics] = df_final
-        output_path = f"../output/Extrapolated Data/monthly_expected_sales_{config['brand']}_{metrics}.xlsx"
-        df_final.to_excel(output_path, index=False)
-        print(f"Saved file for {metrics} at {output_path}")
-        logging.info(f"Saved file for {metrics} at {output_path}")
-        
-    logging.info(f"-"*100)
+        output_path = f"./output/Extrapolated Data/monthly_expected_sales_{config['brand']}_{metrics}.xlsx"
+        try:
+            df_final.to_excel(output_path, index=False)
+            logging.info(f"Saved file for {metrics}: {output_path}")
+            print(f"Saved file for {metrics} at {output_path}")
+        except Exception as e:
+            logging.exception(f"Error saving file for {metrics}: {e}")
+
+    logging.info("-" * 100)
     logging.info("All metrics processed successfully.")
+    print("All metrics processed successfully.")
+
     return final_df_dict
 
-if __name__ == "__main__":
-    # Load config file
-    try:
-        with open("../input/config/config.json", "r") as file:
-            config = json.load(file)
-        logging.info("Config file loaded successfully.")
-    except FileNotFoundError:
-        logging.exception("Config file not found.")
-        raise
-    results = generate_expected_sales(config)
+
+# if __name__ == "__main__":
+#     try:
+#         with open("./input/config/config.json", "r") as file:
+#             config = json.load(file)
+#         logging.info("Config file loaded successfully.")
+#     except FileNotFoundError:
+#         logging.exception("Config file not found.")
+#         raise
+#     results = generate_expected_sales(config)

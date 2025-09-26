@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 import json
 
 logging.basicConfig(
-    filename='../output/logs/weekly_sales.log',
+    filename='./output/logs/weekly_sales.log',
     level=logging.INFO,
     format='%(asctime)s:%(levelname)s:%(message)s'
 )
@@ -22,7 +22,7 @@ def weekly_sales(config):
 
         for l_temp in config["kpi"].keys():
             try:
-                mds_kpi[l_temp] = pd.read_excel(f"../input/Data/mds_{l_temp}.xlsx")
+                mds_kpi[l_temp] = pd.read_excel(f"./input/Data/mds_{l_temp}.xlsx")
                 logging.info(f"KPI file loaded for {l_temp}")
             except Exception as e:
                 logging.error(f"Error loading KPI file for {l_temp}", exc_info=True)
@@ -74,8 +74,8 @@ def weekly_sales(config):
                 raise
 
             try:
-                # ensemble_file_name = f'../output/ensemble_results/raw_abs_{config["brand"]}_{modelA[:3]}_Ensemble.csv'
-                ensemble_file_name = f'../output/ensemble_results/raw_abs_{config["brand"]}_{modelA}_Ensemble.csv'
+                # ensemble_file_name = f'./output/ensemble_results/raw_abs_{config["brand"]}_{modelA[:3]}_Ensemble.csv'
+                ensemble_file_name = f'./output/ensemble_results/raw_abs_{config["brand"]}_{modelA}_Ensemble.csv'
                 df.to_csv(ensemble_file_name, index=False)
                 print("Saved to :", ensemble_file_name)
                 logging.info(f"Saved ensemble file: {ensemble_file_name}")
@@ -90,8 +90,8 @@ def weekly_sales(config):
                     df_bu = df.drop(columns=['Date']).multiply(mds_kpi[l_temp][modelA], axis=0)
                     df_bu.insert(0, 'Date', all_date_weekly)
 
-                    # file_path = f'../input/Data/LTROI {config["brand"]} Weekly {modelA[:3]}.xlsx'
-                    file_path = f'../input/Data/LTROI {config["brand"]} Weekly {modelA}.xlsx'
+                    # file_path = f'./input/Data/LTROI {config["brand"]} Weekly {modelA[:3]}.xlsx'
+                    file_path = f'./input/Data/LTROI {config["brand"]} Weekly {modelA}.xlsx'
                     if ct == 0:
                         df_bu.to_excel(file_path, sheet_name=f"Weekly {l_temp}", index=False)
                     else:
@@ -111,13 +111,13 @@ def weekly_sales(config):
         raise
 
 
-if __name__=="__main__":
-    try:
-        with open("../input/config/config.json", "r") as file:
-            config = json.load(file)
-        logging.info("Config file loaded successfully.")
-    except Exception as e:
-        logging.error("Failed to load config file.", exc_info=True)
-        raise
+# if __name__=="__main__":
+#     try:
+#         with open("./input/config/config.json", "r") as file:
+#             config = json.load(file)
+#         logging.info("Config file loaded successfully.")
+#     except Exception as e:
+#         logging.error("Failed to load config file.", exc_info=True)
+#         raise
 
-    weekly_sales(config)
+#     weekly_sales(config)

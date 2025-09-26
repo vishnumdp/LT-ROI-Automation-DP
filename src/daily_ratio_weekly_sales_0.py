@@ -5,7 +5,7 @@ import pandas as pd
 
 try:
     logging.basicConfig(
-        filename='../output/logs/daily_ratio_sales.log',
+        filename='./output/logs/daily_ratio_sales.log',
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s'
         )
@@ -15,9 +15,10 @@ except:
 
 def process_sales_data(config):
     if config['brand'] != "Kraken":
+        print("Executing this ---- >")
         try:
-            # monthly_df = pd.read_excel(config["STROI"], sheet_name="Monthly Base Sales")
-            monthly_df = pd.read_excel("../input/Data/Vaseline_monthly_basesales.xlsx") 
+            monthly_df = pd.read_excel(config['input_files']["STROI"], sheet_name="Monthly Base Sales") ## This is the Standard Format
+            # monthly_df = pd.read_excel("./input/Data/Vaseline_monthly_basesales.xlsx") 
             monthly_df.dropna(inplace=True)
 
             monthly_df["Year-Month"] = monthly_df["Year"].astype(str) + "-" + monthly_df["Month"].astype(str)
@@ -25,7 +26,8 @@ def process_sales_data(config):
             logging.info(f"Loaded monthly_df with shape {monthly_df.shape}")
 
             # daily_df = pd.read_csv(config["Daily_Units_and_sales"])
-            daily_df = pd.read_excel(config["Daily_Units_and_sales"])
+            daily_df = pd.read_csv(config['input_files']["Daily_Units_and_sales"])
+            # daily_df = pd.read_excel(config['input_files']["Daily_Units_and_sales"])
             logging.info(f"Loaded daily_df with shape {daily_df.shape}")
 
             all_date_daily = pd.date_range(start=config["model_start_date"], end=config["model_end_date"], freq="D")
@@ -73,7 +75,7 @@ def process_sales_data(config):
             for kpi_col, suffix in kpi_map_weekly.items():
                 if kpi_col in weekly_data.columns:
                     logging.info(f"kpi_col: {kpi_col}")
-                    out_path = f"../input/Data/{config['brand']}_{suffix}.xlsx"
+                    out_path = f"./input/Data/{config['brand']}_{suffix}.xlsx"
                     weekly_data[["Date", kpi_col]].rename(columns={kpi_col: "kpi"}).to_excel(out_path, index=False)
                     logging.info(f"Exported {out_path}")
 
@@ -95,7 +97,7 @@ def process_sales_data(config):
             ratio_df.drop(columns=["Base Units", "Base Dollar Sales"], inplace=True, errors="ignore")
             # ratio_df.drop(columns=[kpi_col], inplace=True, errors="ignore")
             logging.info("Final ratio_df created successfully.")
-            out_file = f"../input/Data/{config['brand']}_basesales_daily_ratio_for_lt.xlsx"
+            out_file = f"./input/Data/{config['brand']}_daily_ratio_for_lt.xlsx"
             ratio_df.to_excel(out_file, index=False)
             logging.info(f"Saved final ratio_df to {out_file}")
             print(ratio_df.head())
@@ -106,8 +108,9 @@ def process_sales_data(config):
             logging.error(f"Pipeline failed: {e}")
             raise
     elif config['brand'] == "Kraken":
+        print("Executing this")
         try:
-            # daily_df = pd.read_csv("../LT/Model B/output/Daily raw abs - 05-06-2025.csv")
+            # daily_df = pd.read_csv("./LT/Model B/output/Daily raw abs - 05-06-2025.csv")
             daily_df = pd.read_csv(config['Daily_Units_and_sales']) 
             logging.info("daily data is loaded  successfully.",daily_df.head())
             daily_df['Date'] = pd.to_datetime(daily_df['Date'], format=config["date_format"])
@@ -118,7 +121,7 @@ def process_sales_data(config):
             weekly_data = weekly_data[weekly_data['Date'].dt.day_name() == 'Sunday'].reset_index(drop=True)
             logging.info("Converting to Weeekly Format.",weekly_data.head())
 
-            weekly_data[['Date','Baseline']].rename(columns={'Baseline':'kpi'}).to_excel(f"./Data/input/Data/{config["brand"]}_weekly NTUs.xlsx",index=False)
+            weekly_data[['Date','Baseline']].rename(columns={'Baseline':'kpi'}).to_excel(f"./input/Data/{config['brand']}_weekly NTUs.xlsx", index=False)
             logging.info("Weekly NTUs saved sucessfully.",weekly_data.tail())
 
             weekly_data.set_index('Date', inplace=True)
@@ -132,20 +135,22 @@ def process_sales_data(config):
             logging.info("Creating Daily Ratio")
             ratio_df["Base NTUs Ratio"] = daily_df["Baseline"]/ratio_df["Baseline"]
             ratio_df.drop(columns=["Baseline"],inplace=True)
-            ratio_df.to_excel("./Data/input/Data/"+config["brand"]+"_base_ntus_daily_ratio_for_lt.xlsx",index=False)
+            ratio_df.to_excel("./input/Data/"+config["brand"]+"_daily_ratio_for_lt.xlsx",index=False)
             logging.info("Daily Ratio for LT is sucessfully created",ratio_df.head())
+            logging.info(f"-"*100)
+            
         except Exception as e:
             logging.error(f"Pipeline failed: {e}")
             raise
 
 
-if __name__ == "__main__":
-    try:
-        with open("../input/config/config.json", "r") as file:
-            config = json.load(file)
-        logging.info("Configuration loaded successfully.")
-    except Exception as e:
-        logging.error(f"Failed to load config.json: {e}")
-        raise
+# if __name__ == "__main__":
+#     try:
+#         with open("./input/config/config.json", "r") as file:
+#             config = json.load(file)
+#         logging.info("Configuration loaded successfully.")
+#     except Exception as e:
+#         logging.error(f"Failed to load config.json: {e}")
+#         raise
 
-    final_ratio_df = process_sales_data(config)
+#     final_ratio_df = process_sales_data(config)
