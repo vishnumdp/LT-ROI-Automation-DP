@@ -1,7 +1,6 @@
 # LT-ROI-Automation-DP
 
-A complete automation pipeline for **Long-Term ROI (LT-ROI)** and **Short-Term ROI (ST-ROI)** computation.  
-This project standardizes data ingestion, transformation, and ROI computation across multiple brands, product lines, and platforms.  
+A complete automation pipeline for **Long-Term ROI (LT-ROI)** ..
 
 ---
 
