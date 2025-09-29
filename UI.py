@@ -11,7 +11,7 @@ from Main import Execute_LTROI
 config_data_path = Path("./input/Config")
 config_input_path = Path("./input/Data")
 lagged_files_path = Path("./input/lagged_files")
-raw_attribution = Path(".input/raw attribution")
+raw_attribution = Path("./input/raw attribution")
 
 config_data_path.mkdir(parents=True, exist_ok=True)
 config_input_path.mkdir(parents=True, exist_ok=True)
@@ -39,7 +39,7 @@ if uploaded_config is not None:
         st.json(config)
 
         st.subheader("Select Brand")
-        brand_list = ['Bar', 'BW', 'Deo_F', 'PW DMC', 'Deo DMC', 'Degree_M', 'Degree_F', 'Axe','Nexxus', 'Dove', 'Shea_M', 'Tresseme', 'Vaseline','Klondike', 'Talenti', 'Yasso', 'Breyers']  # extend as needed
+        brand_list = ['Bar', 'BW', 'Deo_F', 'PW DMC', 'Deo DMC', 'Degree_M', 'Degree_F', 'Axe','Nexxus', 'Dove', 'Shea_M', 'Tresseme', 'Vaseline','Klondike', 'Talenti', 'Yasso', 'Breyers','Kraken']  # extend as needed
         selected_brand = st.selectbox("Choose a brand", brand_list)
 
         config["brand"] = selected_brand
