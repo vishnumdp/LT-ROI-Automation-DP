@@ -39,7 +39,7 @@ if uploaded_config is not None:
         st.json(config)
 
         st.subheader("Select Brand")
-        brand_list = ["Vaseline", "Dove", "Axe", "Pond's", "Lakme"]  # extend as needed
+        brand_list = ['Bar', 'BW', 'Deo_F', 'PW DMC', 'Deo DMC', 'Degree_M', 'Degree_F', 'Axe','Nexxus', 'Dove', 'Shea_M', 'Tresseme', 'Vaseline','Klondike', 'Talenti', 'Yasso', 'Breyers']  # extend as needed
         selected_brand = st.selectbox("Choose a brand", brand_list)
 
         config["brand"] = selected_brand
