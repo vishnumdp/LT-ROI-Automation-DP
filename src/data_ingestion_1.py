@@ -37,14 +37,18 @@ def data_ingestion(Weekly_Imp: str, Daily_cost: str, lagged_files: list,
         logging.info(f"Saved Daily Cost to {cost_path}")
 
         # ---------------- Lagged Impressions ----------------
-        if len(lagged_files) != len(config["metrics"]):
-            logging.warning(
-                f"Number of lagged files ({len(lagged_files)}) "
-                f"does not match number of metrics ({len(config['metrics'])}). "
-                "Mapping may be incorrect."
-            )
+        for metric in config["metrics"]:
+            matched_files = [f for f in lagged_files if metric in f]
 
-        for metric, file_path in zip(config["metrics"], lagged_files):
+            if not matched_files:
+                logging.warning(f"No file found for metric: {metric}")
+                continue
+            if len(matched_files) > 1:
+                logging.warning(f"Multiple files found for metric: {metric}, using first one")
+
+            file_path = matched_files[0]
+            print("Metric:", metric, "| File Path:", file_path)
+
             try:
                 logging.info(f"Processing Lagged Impressions for metric: {metric}")
                 df_lagged = pd.read_excel(file_path)
@@ -59,6 +63,7 @@ def data_ingestion(Weekly_Imp: str, Daily_cost: str, lagged_files: list,
             except Exception as e:
                 logging.error(f"Failed to process {metric}: {e}")
                 print(f"Failed for {metric}")
+
 
         # ---------------- Daily Impressions ----------------
         logging.info("Reading Daily Impressions")
@@ -83,6 +88,7 @@ def data_ingestion(Weekly_Imp: str, Daily_cost: str, lagged_files: list,
             all_sheets = excel_obj.sheet_names
 
             possible_names = [metric, f"{metric} Final"]
+            # possible_names = [metric, f"{metric} FINAL"]
             sheet = next((s for s in all_sheets if s in possible_names), None)
 
             if sheet is None:
@@ -90,6 +96,7 @@ def data_ingestion(Weekly_Imp: str, Daily_cost: str, lagged_files: list,
                 continue
 
             df_metric = pd.read_excel(Model_A_Raw_Abs, sheet_name=sheet)
+            df_metric.fillna(0,inplace=True)
             if "Date" in df_metric.columns:
                 df_metric["Date"] = pd.to_datetime(df_metric["Date"], errors="coerce")
 

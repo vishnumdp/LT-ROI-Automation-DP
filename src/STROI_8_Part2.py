@@ -81,6 +81,8 @@ def finalize_rroi(config):
             temp_lst = ['daily_cost', 'daily_imp']
 
             final_dict = weekly_results(config)
+            print(final_dict)
+            logging.info("final_dict",final_dict)
             logging.info("Weekly results successfully retrieved from weekly_results().")
 
             for ci in temp_lst:
@@ -126,7 +128,8 @@ def finalize_rroi(config):
                     print("PC brands logic executing")
                     new_cost_imp['Platform'] = np.where(
                         (new_cost_imp['Media Type'] == 'Paid Media') & 
-                        (new_cost_imp['Channel/Daypart'] != 'Digital Video'),
+                        # (new_cost_imp['Channel/Daypart'] != 'Digital Video'),
+                        (new_cost_imp['Channel'] != 'Digital Video'),
                         'All', new_cost_imp['Platform']
                     )
                 elif config["brand"] in BnW:
@@ -198,7 +201,6 @@ def finalize_rroi(config):
 #         logging.error(f"Failed to load config.json: {e}")
 #         raise
 #     finalize_rroi(config)
-
 
 
 # In this code add logging for remaining part and give me fully updated code and also print important thing

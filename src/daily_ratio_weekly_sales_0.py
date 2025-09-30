@@ -13,6 +13,11 @@ except:
     print("Some Issue in creating file")
 
 
+path_lst = ['ensemble_results', 'Extrapolated Data', 'Weekly ROI Format', 'Weighted Cost', 'logs']
+for path in path_lst:
+    os.makedirs(f"./output/{path}", exist_ok=True)
+
+
 def process_sales_data(config):
     if config['brand'] != "Kraken":
         print("Executing this ---- >")
@@ -146,7 +151,7 @@ def process_sales_data(config):
 
 # if __name__ == "__main__":
 #     try:
-#         with open("./input/config/config.json", "r") as file:
+#         with open("./input/Config/config.json", "r") as file:
 #             config = json.load(file)
 #         logging.info("Configuration loaded successfully.")
 #     except Exception as e:

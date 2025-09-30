@@ -4,6 +4,9 @@ from pathlib import Path
 from datetime import datetime
 import os
 import sys
+import logging
+from io import StringIO
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),)))
 from Main import Execute_LTROI
 
@@ -39,7 +42,11 @@ if uploaded_config is not None:
         st.json(config)
 
         st.subheader("Select Brand")
-        brand_list = ['Bar', 'BW', 'Deo_F', 'PW DMC', 'Deo DMC', 'Degree_M', 'Degree_F', 'Axe','Nexxus', 'Dove', 'Shea_M', 'Tresseme', 'Vaseline','Klondike', 'Talenti', 'Yasso', 'Breyers','Kraken']  # extend as needed
+        brand_list = ['Bar', 'BW', 'Deo_F', 'PW DMC', 'Deo DMC', 'Degree_M', 'Degree_F', 'Axe',
+                      'Nexxus', 'Dove', 'Shea_M', 'Tresseme', 'Vaseline',
+                      'Klondike', 'Talenti', 'Yasso', 'Breyers',
+                      'Kraken']
+
         selected_brand = st.selectbox("Choose a brand", brand_list)
 
         config["brand"] = selected_brand
@@ -55,7 +62,6 @@ if uploaded_config is not None:
                 save_path = config_input_path / file.name
                 with open(save_path, "wb") as f:
                     f.write(file.getbuffer())
-
                 config["input_files"][key] = f"./{save_path.as_posix()}"
 
         st.subheader("Upload Lagged Files")
@@ -77,22 +83,39 @@ if uploaded_config is not None:
             config["lagged_files"] = saved_paths
 
         if st.button("Run LT ROI Pipeline"):
+
+            log_stream = StringIO()
+            stream_handler = logging.StreamHandler(log_stream)
+            stream_handler.setLevel(logging.INFO)
+
+            logger = logging.getLogger()
+            logger.setLevel(logging.INFO)
+            logger.addHandler(stream_handler)
+
+            log_placeholder = st.empty()
+
             try:
-                # Save updated config.json
                 with open(config_save_path, "w") as f:
                     json.dump(config, f, indent=4)
 
-                st.info("Running pipeline... please wait ⏳")
+                st.info("Running pipeline... please wait")
 
                 result = Execute_LTROI(config)
 
-                st.success(result["status"])
+                st.success(result.get("status", "Pipeline finished"))
                 st.json(config)
 
             except Exception as e:
                 st.error(f"Pipeline execution failed: {e}")
 
+            finally:
+                stream_handler.flush()
+                logs = log_stream.getvalue()
+                if logs.strip():
+                    log_placeholder.text_area("Execution Logs", logs, height=300)
+
+                # Clean up handler
+                logger.removeHandler(stream_handler)
 
     except Exception as e:
-        
         st.error(f"Error handling config file: {e}")
