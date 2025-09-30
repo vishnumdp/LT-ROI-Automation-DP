@@ -77,7 +77,7 @@ A complete automation pipeline for **Long-Term ROI (LT-ROI)** ..
 
     Option 2 – Direct Python Execution
 
-        from your_pipeline_file import Execute_LTROI
+        from main import Execute_LTROI
         import json
 
         with open("./input/Config/config.json", "r") as f:
